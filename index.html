@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Velfield</title>
+<meta name="description" content="Velfield LLC is an independent software studio building mobile apps, websites, games, back-ends and integrations.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%23121318'/%3E%3Cg fill='none' stroke='%23F4F2EE' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M9 18c6-5 11 5 17 0s13-3 13-3'/%3E%3Cpath d='M9 26c6-5 11 5 17 0s13-3 13-3'/%3E%3Cpath d='M9 34c6-5 11 5 17 0s13-3 13-3'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+:root{--bg:#121318;--fg:#F4F2EE;--muted:#A6A7AE;--line:#2A2B31;--accent:#F06A95;
+  --display:"Syne",system-ui,sans-serif;--body:"IBM Plex Sans",system-ui,sans-serif;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 var(--body);min-height:100vh;display:flex;flex-direction:column;
+  padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+main{flex:1;width:100%;max-width:720px;margin:0 auto;display:flex;flex-direction:column;justify-content:center;gap:40px;padding-block:48px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand svg{width:44px;height:44px;flex:none}
+.brand span{font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.01em}
+h1{font-family:var(--display);font-weight:600;font-size:clamp(30px,6vw,46px);line-height:1.1;margin:0;text-wrap:balance}
+p{margin:0;color:var(--muted);max-width:60ch}
+.game{border:1px solid var(--line);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:6px}
+.game .label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.game h2{font-family:var(--display);font-weight:600;font-size:22px;margin:0;color:var(--fg)}
+.game h2 b{color:var(--accent);font-weight:600}
+a{color:var(--fg);text-decoration-color:var(--accent);text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.what{display:flex;flex-direction:column;gap:12px}
+.what .label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.what ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+@media (max-width:560px){.what ul{grid-template-columns:1fr}}
+.what li{background:var(--bg);padding:16px 18px;display:flex;flex-direction:column;gap:2px}
+.what li b{font-family:var(--display);font-weight:600;font-size:17px}
+.what li span{color:var(--muted);font-size:14px}
+.contact{display:flex;flex-direction:column;gap:4px}
+.contact .label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+footer{width:100%;max-width:720px;margin:0 auto;border-top:1px solid var(--line);padding-top:16px;
+  display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:space-between;font-size:13px;color:var(--muted)}
+footer nav{display:flex;gap:16px}
+</style>
+</head>
+<body>
+<main>
+  <div class="brand" aria-label="Velfield">
+    <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 16c8-6 14 6 22 0s14-4 14-4"/><path d="M6 26c8-6 14 6 22 0s14-4 14-4"/><path d="M6 36c8-6 14 6 22 0s14-4 14-4"/></svg>
+    <span>Velfield</span>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <h1>Software, built end to end.</h1>
+    <p>Velfield LLC is an independent software studio. We design, build and run mobile apps, websites, games, back-ends and the integrations that connect them, from the first idea to the live product.</p>
+  </div>
+
+  <section class="what" aria-labelledby="w">
+    <span class="label" id="w">What we build</span>
+    <ul>
+      <li><b>Mobile apps</b><span>Android and iOS, native and cross-platform</span></li>
+      <li><b>Websites &amp; web apps</b><span>from simple sites to full products</span></li>
+      <li><b>Integrations &amp; back-ends</b><span>APIs, databases, payments, cloud services</span></li>
+      <li><b>Games</b><span>mobile games with real craft and polish</span></li>
+    </ul>
+  </section>
+
+  <section class="game" aria-labelledby="g">
+    <span class="label">Our products</span>
+    <h2 id="g">Crime<b>Ghost</b>: Detective Mystery</h2>
+    <p>A mobile mystery game: unlock a missing person's phone or laptop, search their apps and messages, and find out what happened. Coming to Google Play.</p>
+    <p><a href="https://crimeghost.com/privacy/">Privacy policy</a> · <a href="https://crimeghost.com/delete/">Delete your data</a></p>
+  </section>
+
+  <div class="contact">
+    <span class="label">Contact</span>
+    <p>Have a project in mind? Write to us.</p>
+    <a href="mailto:hello@velfield.com">hello@velfield.com</a>
+  </div>
+</main>
+<footer>
+  <span>© 2026 Velfield LLC</span>
+  <nav><a href="https://crimeghost.com/privacy/">Privacy</a></nav>
+</footer>
+</body>
+</html>
