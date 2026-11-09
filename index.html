@@ -381,11 +381,11 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
+import { GPUComputationRenderer } from 'three/addons/misc/GPUComputationRenderer.js';
 
 const html = document.documentElement, rm = html.classList.contains('rm');
-const progress = v => window.__vfProgress && window.__vfProgress(v);
-const fail = err => { console.warn('[velfield] 3D disabled:', err); html.classList.add('no-gl'); document.getElementById('gl').remove(); window.__vfReady && window.__vfReady(); };
-
+const fail = err => { console.warn('[velfield] 3D disabled:', err); html.classList.add('no-gl'); const c = document.getElementById('gl'); if (c) c.remove(); window.__vfReady && window.__vfReady(); };
 try { start(); } catch (err) { fail(err); }
 
 function start() {
@@ -396,20 +396,12 @@ function start() {
   if (!renderer.capabilities.isWebGL2) throw new Error('WebGL2 not available');
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
   renderer.setClearColor(0x07070B, 1);
-  progress(12);
 
-  /* ---------------- particle targets ---------------- */
-  const LINES = small ? 480 : 1000, PER = small ? 104 : 120, N = LINES * PER;
+  const SIZE = small ? 256 : 512, N = SIZE * SIZE;
   const rnd = Math.random;
   const gauss = () => { let u = 0, v = 0; while (!u) u = rnd(); while (!v) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); };
 
-  const seeds = new Float32Array(N * 4);
-  for (let l = 0, k = 0; l < LINES; l++) {
-    const y0 = gauss() * .55, z0 = gauss() * .6, w = rnd();
-    for (let j = 0; j < PER; j++) { seeds[k++] = y0; seeds[k++] = z0; seeds[k++] = (j + rnd() * .6) / PER; seeds[k++] = w; }
-  }
-  const hash = new Float32Array(N); for (let i = 0; i < N; i++) hash[i] = rnd();
-
+  /* ---------------- shape targets (sampled point clouds) ---------------- */
   function build(parts) {
     const out = new Float32Array(N * 3), tot = parts.reduce((a, p) => a + p[0], 0);
     let k = 0;
@@ -421,7 +413,7 @@ function start() {
     return out;
   }
   const J = s => (rnd() - .5) * s;
-  const rr = (w, h, r, t) => {            // point on a rounded-rectangle outline, t in [0,1)
+  const rr = (w, h, r, t) => {
     const sw = w - 2 * r, sh = h - 2 * r, arc = Math.PI * r / 2, L = 2 * sw + 2 * sh + 4 * arc; let d = t * L;
     const S = [
       [sw, d => [-w / 2 + r + d, h / 2]],
@@ -443,7 +435,6 @@ function start() {
   const plane = (x0, x1, y0, y1, z) => () => [x0 + (x1 - x0) * rnd(), y0 + (y1 - y0) * rnd(), z + J(.02)];
   const ringY = (cy, r) => () => { const a = rnd() * 6.2832; return [Math.cos(a) * r, cy + J(.02), Math.sin(a) * r]; };
   const sphere = (c, r) => () => { const u = rnd() * 2 - 1, a = rnd() * 6.2832, s = Math.sqrt(1 - u * u); return [c[0] + s * Math.cos(a) * r, c[1] + u * r, c[2] + s * Math.sin(a) * r]; };
-
   function canvasPts(draw, S = 512) {
     const c = document.createElement('canvas'); c.width = c.height = S;
     const x = c.getContext('2d', { willReadFrequently: true }); x.fillStyle = x.strokeStyle = '#fff'; x.lineCap = x.lineJoin = 'round';
@@ -457,14 +448,11 @@ function start() {
     const x = (px / cp.S - .5) * size, y = -(py / cp.S - .5) * size; return [x, y, zfn(x, y)];
   };
 
-  // 1 phone
   const phoneParts = [[26, box(1.8, 3.6, .3, 0, 0, .1)], [14, box(1.8, 3.6, .3, 0, 0, -.1)], [8, () => { const [x, y] = rr(1.8, 3.6, .3, rnd()); return [x, y, J(.2)]; }],
     [4, box(.46, .13, .065, 0, 1.56, .11)], [3, plane(-.78, .78, -1.64, 1.64, .1)]];
   for (let r = 0; r < 6; r++) for (let c = 0; c < 4; c++) phoneParts.push([1.6, box(.27, .27, .08, -.54 + c * .36, (r === 5 ? -1.36 : 1.12 - r * .4), .11)]);
   const tPhone = build(phoneParts);
-  progress(25);
 
-  // 2 browser window
   const tBrowser = build([
     [22, box(4.4, 2.9, .16, 0, 0, 0)], [6, seg(-2.2, 1.04, 2.2, 1.04, 0)],
     [1.5, circ(-1.96, 1.24, .065, 0)], [1.5, circ(-1.76, 1.24, .065, 0)], [1.5, circ(-1.56, 1.24, .065, 0)],
@@ -476,22 +464,18 @@ function start() {
     [7, box(1.25, .62, .08, -1.45, -.88, 0)], [7, box(1.25, .62, .08, 0, -.88, 0)], [7, box(1.25, .62, .08, 1.45, -.88, 0)],
     [3, plane(-2.15, 2.15, -1.4, 1.0, -.06)],
   ]);
-  progress(38);
 
-  // 3 back-end: database stack + connected nodes
   const bParts = [];
   [.82, 0, -.82].forEach(cy => {
     bParts.push([7, ringY(cy + .3, .95)], [7, ringY(cy - .3, .95)], [3, ringY(cy + .1, .95)]);
     bParts.push([4, () => { const a = rnd() * 6.2832; return [Math.cos(a) * .95, cy - .3 + rnd() * .6, Math.sin(a) * .95]; }]);
   });
   bParts.push([1.5, () => { const a = rnd() * 6.2832, r = Math.sqrt(rnd()) * .95; return [Math.cos(a) * r, 1.12, Math.sin(a) * r]; }]);
-  const nodes = [[2.4, 1.2, .3], [-2.3, .9, -.4], [2.1, -1.1, -.6], [-2.2, -1.2, .5], [0, 2.1, -1.4], [.3, -2.1, 1.3]];
-  nodes.forEach(n => { bParts.push([3, sphere(n, .2)], [3, seg3([n[0] * .45, n[1] * .45, n[2] * .45], n)]); });
+  [[2.4, 1.2, .3], [-2.3, .9, -.4], [2.1, -1.1, -.6], [-2.2, -1.2, .5], [0, 2.1, -1.4], [.3, -2.1, 1.3]]
+    .forEach(n => { bParts.push([3, sphere(n, .2)], [3, seg3([n[0] * .45, n[1] * .45, n[2] * .45], n)]); });
   const tBack = build(bParts);
-  progress(50);
 
-  // 4 gamepad
-  const padStroke = canvasPts((x) => {
+  const padStroke = canvasPts(x => {
     x.lineWidth = 9;
     x.beginPath(); x.moveTo(150, 175); x.lineTo(362, 175);
     x.bezierCurveTo(432, 175, 470, 252, 480, 330); x.bezierCurveTo(490, 402, 438, 424, 408, 382);
@@ -505,9 +489,7 @@ function start() {
     [[210, 300], [302, 300]].forEach(([cx, cy]) => { x.beginPath(); x.arc(cx, cy, 25, 0, 6.2832); x.stroke(); x.beginPath(); x.arc(cx, cy, 10, 0, 6.2832); x.stroke(); });
   });
   const tPad = build([[1, fromCanvas(padStroke, 5.2, () => J(.26))]]);
-  progress(62);
 
-  // 5 ghost (CrimeGhost)
   const ghostPath = x => {
     x.beginPath(); x.moveTo(156, 404); x.lineTo(156, 226); x.arc(256, 226, 100, Math.PI, 0); x.lineTo(356, 404);
     for (let i = 0; i < 4; i++) { const x0 = 356 - i * 50; x.quadraticCurveTo(x0 - 12.5, 432, x0 - 25, 404); x.quadraticCurveTo(x0 - 37.5, 376, x0 - 50, 404); }
@@ -516,22 +498,32 @@ function start() {
   const gStroke = canvasPts(x => { x.lineWidth = 7; ghostPath(x); x.stroke(); x.lineWidth = 6; x.beginPath(); x.ellipse(220, 238, 15, 24, 0, 0, 6.2832); x.stroke(); x.beginPath(); x.ellipse(292, 238, 15, 24, 0, 0, 6.2832); x.stroke(); x.beginPath(); x.arc(256, 300, 14, 0, 6.2832); x.stroke(); });
   const gFill = canvasPts(x => { ghostPath(x); x.fill(); x.globalCompositeOperation = 'destination-out'; x.beginPath(); x.ellipse(220, 236, 17, 26, 0, 0, 6.2832); x.fill(); x.beginPath(); x.ellipse(292, 236, 17, 26, 0, 0, 6.2832); x.fill(); });
   const tGhost = build([[88, fromCanvas(gStroke, 4.4, () => J(.2))], [12, fromCanvas(gFill, 4.4, () => J(.5))]]);
-  progress(74);
 
-  // 6 torus knot (process: the loop of discover, design, build, run)
   const tKnot = build([[1, () => {
     const t = rnd() * 6.2832, r = Math.cos(3 * t) + 2.25;
     const u = rnd() * 2 - 1, a = rnd() * 6.2832, s = Math.sqrt(1 - u * u), rad = .22 * (.75 + .25 * rnd());
     return [(r * Math.cos(2 * t)) * .66 + s * Math.cos(a) * rad, (r * Math.sin(2 * t)) * .66 + u * rad, (-Math.sin(3 * t) * 1.2) * .66 + s * Math.sin(a) * rad];
   }]]);
-  progress(84);
 
-  // 8 logo waves (contact)
-  const logoC = canvasPts((x, S) => { x.scale(S / 48, S / 48); x.lineWidth = 2.7; const p = new Path2D('M6 16c8-6 14 6 22 0s14-4 14-4M6 26c8-6 14 6 22 0s14-4 14-4M6 36c8-6 14 6 22 0s14-4 14-4'); x.stroke(p); });
+  const logoC = canvasPts((x, S) => { x.scale(S / 48, S / 48); x.lineWidth = 2.7; x.stroke(new Path2D('M6 16c8-6 14 6 22 0s14-4 14-4M6 26c8-6 14 6 22 0s14-4 14-4M6 36c8-6 14 6 22 0s14-4 14-4')); });
   const tLogo = build([[1, fromCanvas(logoC, 3.6, () => J(.25))]]);
-  progress(92);
 
-  /* ---------------- material ---------------- */
+  // spiral galaxy: stores (radius, angle, height) per particle; the simulation spins it
+  const gal = new Float32Array(N * 4);
+  for (let i = 0; i < N; i++) {
+    const u = rnd(); let r, th, y;
+    if (u < .17) { r = Math.abs(gauss()) * .42 + .03; th = rnd() * 6.2832; y = gauss() * .2 * Math.max(.25, 1 - r * 1.3); }
+    else if (u < .87) { r = .28 + Math.pow(rnd(), .78) * 3.6; const arm = (rnd() * 3) | 0; th = arm * 2.0944 + Math.log(r) * 2.15 + gauss() * (.11 + .07 / r); y = gauss() * .045 * (1 + r * .25); }
+    else { r = .4 + rnd() * 4.8; th = rnd() * 6.2832; y = gauss() * .3; }
+    gal[i * 4] = r; gal[i * 4 + 1] = th; gal[i * 4 + 2] = y; gal[i * 4 + 3] = 1;
+  }
+  const dtex = a => { const t = new THREE.DataTexture(a, SIZE, SIZE, THREE.RGBAFormat, THREE.FloatType); t.needsUpdate = true; return t; };
+  const toTex = xyz => { const a = new Float32Array(N * 4); for (let i = 0; i < N; i++) { a[i * 4] = xyz[i * 3]; a[i * 4 + 1] = xyz[i * 3 + 1]; a[i * 4 + 2] = xyz[i * 3 + 2]; a[i * 4 + 3] = 1; } return dtex(a); };
+  const tGal = dtex(gal);
+  const targets = [tGal, toTex(tPhone), toTex(tBrowser), toTex(tBack), toTex(tPad), toTex(tGhost), toTex(tKnot), tGal, toTex(tLogo)];
+  const types = [0, 1, 1, 1, 1, 1, 1, 0, 1];
+
+  /* ---------------- GPU simulation ---------------- */
   const NOISE = `
 vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
 vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
@@ -555,131 +547,161 @@ float snoise(vec3 v){
   p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
   vec4 m=max(0.5-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0);m=m*m;
   return 105.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
-}`;
-  const vertexShader = `
-attribute vec4 aSeed; attribute float aHash;
-attribute vec3 aT1; attribute vec3 aT2; attribute vec3 aT3; attribute vec3 aT4; attribute vec3 aT5; attribute vec3 aT6; attribute vec3 aT8;
-uniform float uTime, uP, uEnergy, uVel, uDpr, uScale, uGain;
-uniform vec3 uMouse; uniform vec2 uSpin;
-uniform vec3 uOff[9]; uniform vec3 uCa[9]; uniform vec3 uCb[9]; uniform float uSz[9];
-varying vec3 vColor; varying float vAlpha;
-${NOISE}
-vec3 river(out float fade){
-  float speed=0.022+0.022*fract(aSeed.w*7.13);
-  float phase=fract(aSeed.z+uTime*speed);
-  float x=mix(-10.5,10.5,phase);
-  float y0=aSeed.x, z0=aSeed.y; float t=uTime*0.045;
-  float big=snoise(vec3(x*0.09,0.0,t*0.7));
-  float bigz=snoise(vec3(x*0.09+40.0,3.0,t*0.7));
-  float n1=snoise(vec3(x*0.28,y0*1.3,t));
-  float n2=snoise(vec3(x*0.28+19.1,z0*1.3,t+7.3));
-  vec3 p=vec3(x, big*2.0+y0*1.0+n1*0.5+sin(x*0.42+uTime*0.25+y0*2.0)*0.2, bigz*1.8+z0*1.4+n2*0.5);
-  float cz=cos(0.3), sz=sin(0.3);
-  p=vec3(cz*p.x-sz*p.y, sz*p.x+cz*p.y, p.z);
-  fade=smoothstep(0.0,0.1,phase)*smoothstep(1.0,0.85,phase);
-  return p;
 }
-vec3 spin(vec3 p){
+vec3 curl(vec3 p){
+  const float e=0.12;
+  vec3 dx=vec3(e,0.0,0.0), dy=vec3(0.0,e,0.0), dz=vec3(0.0,0.0,e);
+  vec3 o1=vec3(31.4,0.0,0.0), o2=vec3(0.0,73.1,0.0);
+  float a=snoise(p+o2+dy)-snoise(p+o2-dy), b=snoise(p+o1+dz)-snoise(p+o1-dz);
+  float c=snoise(p+dz)-snoise(p-dz),       d=snoise(p+o2+dx)-snoise(p+o2-dx);
+  float f=snoise(p+o1+dx)-snoise(p+o1-dx), g=snoise(p+dy)-snoise(p-dy);
+  return vec3(a-b, c-d, f-g)/(2.0*e);
+}`;
+  const VEL = `
+uniform float uTime, uDt, uMix, uVel, uEnergy, uScaleA, uScaleB, uTypeA, uTypeB, uMotion;
+uniform vec3 uMouse, uOffA, uOffB; uniform vec2 uSpin;
+uniform sampler2D tA; uniform sampler2D tB;
+${NOISE}
+vec3 targetOf(sampler2D T, float type, vec3 off, float sc, vec2 uv, float h){
+  vec4 d=texture2D(T,uv);
+  if(type<0.5){
+    float r=d.x, th=d.y+uTime*0.11+0.035*sin(uTime*(0.5+h*0.6)+d.y*3.0);
+    vec3 p=vec3(r*cos(th), d.z, r*sin(th));
+    float c=cos(1.08), s=sin(1.08); p=vec3(p.x, c*p.y-s*p.z, s*p.y+c*p.z);
+    float c2=cos(0.32), s2=sin(0.32); p=vec3(c2*p.x-s2*p.y, s2*p.x+c2*p.y, p.z);
+    return p*sc+off;
+  }
+  vec3 p=d.xyz;
   float cy=cos(uSpin.x), sy=sin(uSpin.x), cx=cos(uSpin.y), sx=sin(uSpin.y);
   p=vec3(cy*p.x+sy*p.z, p.y, -sy*p.x+cy*p.z);
-  return vec3(p.x, cx*p.y-sx*p.z, sx*p.y+cx*p.z);
+  p=vec3(p.x, cx*p.y-sx*p.z, sx*p.y+cx*p.z);
+  return p*sc+off;
 }
 void main(){
-  float i=floor(uP), f=uP-i;
-  float fe=smoothstep(0.18,0.82,f);
-  float S=0.75;
-  float fl=clamp(fe*(1.0+S)-aHash*S,0.0,1.0);
-  float pe=i+fl;
-  float w[9];
-  for(int k=0;k<9;k++){ w[k]=max(0.0,1.0-abs(pe-float(k))); }
-  vec3 pos=vec3(0.0); vec3 col=vec3(0.0); float sz=0.0;
-  float wr=w[0]+w[7]; float fade=1.0;
-  if(wr>0.0){ vec3 rp=river(fade); pos+=w[0]*(rp+uOff[0])+w[7]*(rp*0.85+uOff[7]); }
-  pos+=w[1]*(spin(aT1)*uScale+uOff[1]);
-  pos+=w[2]*(spin(aT2)*uScale+uOff[2]);
-  pos+=w[3]*(spin(aT3)*uScale+uOff[3]);
-  pos+=w[4]*(spin(aT4)*uScale+uOff[4]);
-  pos+=w[5]*(spin(aT5)*uScale+uOff[5]);
-  pos+=w[6]*(spin(aT6)*uScale+uOff[6]);
-  pos+=w[8]*(spin(aT8)*uScale+uOff[8]);
-  for(int k=0;k<9;k++){ col+=w[k]*mix(uCa[k],uCb[k],aHash); sz+=w[k]*uSz[k]; }
-  // swarm through the velocity field while morphing, and when scrolling fast
-  float tb=sin(3.14159265*fl)*1.7+min(uVel,1.4)*0.45;
-  if(tb>0.002){ vec3 q=pos*0.32+vec3(0.0,0.0,uTime*0.12); pos+=vec3(snoise(q),snoise(q+31.4),snoise(q+73.1))*tb; }
-  // breathing on shapes
-  pos+=(1.0-wr)*vec3(0.0,0.0,snoise(vec3(pos.xy*0.7,uTime*0.2))*0.06);
-  // cursor vortex
-  vec2 d=pos.xy-uMouse.xy; float vr=mix(0.5,1.6,wr); float g=exp(-dot(d,d)*vr)*uEnergy*mix(0.55,1.0,wr);
-  float a=g*mix(1.3,2.4,wr), ca=cos(a), sa=sin(a);
-  d=vec2(ca*d.x-sa*d.y, sa*d.x+ca*d.y)*(1.0+g*mix(0.3,0.55,wr));
-  pos.xy=uMouse.xy+d; pos.z+=g*0.7;
-  vec4 mv=modelViewMatrix*vec4(pos,1.0);
-  gl_Position=projectionMatrix*mv;
-  gl_PointSize=sz*uDpr*(1.0+g*0.9)*(10.0/-mv.z);
-  float dz=clamp((-mv.z-6.0)/12.0,0.0,1.0);
-  float alpha=wr*fade+(1.0-wr);
-  vAlpha=(alpha*(1.0-dz*0.7)*(0.55+0.45*fract(aHash*13.7))+g*0.18)*uGain;
-  vColor=mix(col,vec3(1.0,0.96,1.0),g*0.4);
+  vec2 uv=gl_FragCoord.xy/resolution.xy;
+  vec3 pos=texture2D(texturePosition,uv).xyz, vel=texture2D(textureVelocity,uv).xyz;
+  float h=fract(sin(dot(uv,vec2(12.9898,78.233)))*43758.5453);
+  float S=0.75, fl=clamp(uMix*(1.0+S)-h*S,0.0,1.0);
+  vec3 tgt=mix(targetOf(tA,uTypeA,uOffA,uScaleA,uv,h), targetOf(tB,uTypeB,uOffB,uScaleB,uv,h), fl);
+  float gal=mix(1.0-uTypeA, 1.0-uTypeB, fl);
+  float storm=sin(3.14159265*fl);
+  float k=mix(10.0, 7.0, gal)*(1.0-storm*0.75);
+  vec3 acc=(tgt-pos)*k;
+  float turb=(mix(0.1,0.1,gal)+storm*7.0+uVel*4.0)*uMotion;
+  acc+=curl(pos*0.3+vec3(0.0,0.0,uTime*0.07))*turb;
+  vec3 dm=pos-uMouse; float r2=dot(dm,dm), f=exp(-r2*0.55)*uEnergy;
+  acc+=(normalize(dm+vec3(1e-4))*16.0+cross(vec3(0.0,0.0,1.0),dm)*26.0)*f;
+  vel+=acc*uDt;
+  vel*=exp(-uDt*mix(6.0,4.2,gal));
+  gl_FragColor=vec4(vel,1.0);
 }`;
-  const fragmentShader = `
-varying vec3 vColor; varying float vAlpha;
-void main(){ vec2 c=gl_PointCoord-0.5; float a=smoothstep(0.5,0.05,length(c))*vAlpha; if(a<0.003) discard; gl_FragColor=vec4(vColor,a); }`;
+  const POS = `
+uniform float uDt;
+void main(){ vec2 uv=gl_FragCoord.xy/resolution.xy; vec3 p=texture2D(texturePosition,uv).xyz; vec3 v=texture2D(textureVelocity,uv).xyz; gl_FragColor=vec4(p+v*uDt,1.0); }`;
 
-  const C = h => new THREE.Color(h);
-  const ca = ['#7C6BFF', '#F06A95', '#6E8BFF', '#8B6BFF', '#FF6F9F', '#7FA0FF', '#F06A95', '#7C6BFF', '#F06A95'].map(C);
-  const cb = ['#F06A95', '#FFB0CB', '#BFD8FF', '#63E0FF', '#FFB36B', '#C08BFF', '#7C6BFF', '#F06A95', '#7C9BFF'].map(C);
-  const offs = Array.from({ length: 9 }, () => new THREE.Vector3());
-  const uniforms = {
-    uTime: { value: 0 }, uP: { value: 0 }, uEnergy: { value: 0 }, uVel: { value: 0 }, uDpr: { value: 1 }, uScale: { value: 1 }, uGain: { value: small ? .7 : .55 },
-    uMouse: { value: new THREE.Vector3(99, 99, 0) }, uSpin: { value: new THREE.Vector2() },
-    uOff: { value: offs }, uCa: { value: ca }, uCb: { value: cb },
-    uSz: { value: [2.1, 2.3, 2.2, 2.2, 2.3, 2.3, 2.1, 2.0, 2.4] },
-  };
+  const gpu = new GPUComputationRenderer(SIZE, SIZE, renderer);
+  const p0 = gpu.createTexture(), v0 = gpu.createTexture();
+  { const a = p0.image.data; for (let i = 0; i < N; i++) { const u = rnd() * 2 - 1, t = rnd() * 6.2832, s = Math.sqrt(1 - u * u), r = 9 + rnd() * 14; a[i * 4] = s * Math.cos(t) * r; a[i * 4 + 1] = u * r; a[i * 4 + 2] = s * Math.sin(t) * r - 6; a[i * 4 + 3] = 1; } }
+  const velVar = gpu.addVariable('textureVelocity', VEL, v0);
+  const posVar = gpu.addVariable('texturePosition', POS, p0);
+  gpu.setVariableDependencies(velVar, [posVar, velVar]);
+  gpu.setVariableDependencies(posVar, [posVar, velVar]);
+  const vu = velVar.material.uniforms;
+  Object.assign(vu, {
+    uTime: { value: 0 }, uDt: { value: 0 }, uMix: { value: 0 }, uVel: { value: 0 }, uEnergy: { value: 0 }, uMotion: { value: rm ? 0 : 1 },
+    uScaleA: { value: 1 }, uScaleB: { value: 1 }, uTypeA: { value: 0 }, uTypeB: { value: 0 },
+    uMouse: { value: new THREE.Vector3(99, 99, 0) }, uOffA: { value: new THREE.Vector3() }, uOffB: { value: new THREE.Vector3() }, uSpin: { value: new THREE.Vector2() },
+    tA: { value: targets[0] }, tB: { value: targets[0] },
+  });
+  posVar.material.uniforms.uDt = { value: 0 };
+  const gerr = gpu.init(); if (gerr) throw new Error(gerr);
+
+  /* ---------------- render ---------------- */
+  const ref = new Float32Array(N * 2);
+  for (let i = 0; i < N; i++) { ref[i * 2] = ((i % SIZE) + .5) / SIZE; ref[i * 2 + 1] = (((i / SIZE) | 0) + .5) / SIZE; }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
-  geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 4));
-  geo.setAttribute('aHash', new THREE.BufferAttribute(hash, 1));
-  [['aT1', tPhone], ['aT2', tBrowser], ['aT3', tBack], ['aT4', tPad], ['aT5', tGhost], ['aT6', tKnot], ['aT8', tLogo]].forEach(([n, a]) => geo.setAttribute(n, new THREE.BufferAttribute(a, 3)));
-  const mat = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending });
+  geo.setAttribute('aRef', new THREE.BufferAttribute(ref, 2));
+  const C = h => new THREE.Color(h);
+  const ca = ['#7C6BFF', '#F06A95', '#6E8BFF', '#8B6BFF', '#FF6F9F', '#7FA0FF', '#F06A95', '#7C6BFF', '#F06A95'].map(C);
+  const cb = ['#F06A95', '#FFB0CB', '#BFD8FF', '#63E0FF', '#FFB36B', '#C08BFF', '#7C6BFF', '#FFB0CB', '#7C9BFF'].map(C);
+  const mu = {
+    tPos: { value: null }, tVel: { value: null }, uDpr: { value: 1 }, uSize: { value: small ? 2.2 : 1.65 }, uGain: { value: small ? .4 : .25 },
+    uFocus: { value: 10 }, uMix: { value: 0 }, uGal: { value: 1 },
+    uCa0: { value: new THREE.Color() }, uCb0: { value: new THREE.Color() }, uCa1: { value: new THREE.Color() }, uCb1: { value: new THREE.Color() },
+  };
+  const mat = new THREE.ShaderMaterial({
+    uniforms: mu, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+    vertexShader: `
+uniform sampler2D tPos; uniform sampler2D tVel; uniform float uDpr, uSize, uGain, uFocus, uMix, uGal;
+uniform vec3 uCa0, uCb0, uCa1, uCb1;
+attribute vec2 aRef; varying vec3 vColor; varying float vAlpha;
+void main(){
+  vec3 P=texture2D(tPos,aRef).xyz; vec3 V=texture2D(tVel,aRef).xyz;
+  vec4 mv=modelViewMatrix*vec4(P,1.0); gl_Position=projectionMatrix*mv;
+  float h=fract(sin(dot(aRef,vec2(12.9898,78.233)))*43758.5453);
+  float spd=length(V);
+  float coc=min(abs(-mv.z-uFocus)*0.13,2.0);
+  gl_PointSize=uSize*uDpr*(10.0/max(-mv.z,0.5))*(1.0+coc*1.8);
+  vec3 base=mix(mix(uCa0,uCb0,h),mix(uCa1,uCb1,h),uMix);
+  float r=length(P.xy-vec2(0.0));
+  vColor=mix(base,vec3(1.0,0.88,0.96),clamp(spd*0.18,0.0,0.85));
+  vAlpha=uGain*(0.45+0.55*h)/(1.0+coc*coc*3.0)*(0.8+min(spd*0.2,1.0));
+}`,
+    fragmentShader: `
+varying vec3 vColor; varying float vAlpha;
+void main(){ vec2 c=gl_PointCoord-0.5; float a=smoothstep(0.5,0.0,length(c))*vAlpha; if(a<0.002) discard; gl_FragColor=vec4(vColor,a); }`,
+  });
   const points = new THREE.Points(geo, mat); points.frustumCulled = false;
-
   const scene = new THREE.Scene(); scene.add(points);
+  // deep-space starfield for depth; rotates slowly as you scroll
+  const NS = small ? 1500 : 3500, sp = new Float32Array(NS * 3), sh = new Float32Array(NS);
+  for (let i = 0; i < NS; i++) { const u = rnd() * 2 - 1, a = rnd() * 6.2832, s = Math.sqrt(1 - u * u), r = 28 + rnd() * 40; sp[i * 3] = s * Math.cos(a) * r; sp[i * 3 + 1] = u * r; sp[i * 3 + 2] = s * Math.sin(a) * r - 20; sh[i] = rnd(); }
+  const sgeo = new THREE.BufferGeometry(); sgeo.setAttribute('position', new THREE.BufferAttribute(sp, 3)); sgeo.setAttribute('aH', new THREE.BufferAttribute(sh, 1));
+  const su = { uTime: { value: 0 }, uDpr: { value: 1 } };
+  const stars = new THREE.Points(sgeo, new THREE.ShaderMaterial({ uniforms: su, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending,
+    vertexShader: `uniform float uTime, uDpr; attribute float aH; varying float vA; void main(){ vec4 mv=modelViewMatrix*vec4(position,1.0); gl_Position=projectionMatrix*mv; gl_PointSize=(0.8+aH*1.6)*uDpr; vA=(0.25+0.75*aH)*(0.55+0.45*sin(uTime*(0.6+aH*2.0)+aH*40.0)); }`,
+    fragmentShader: `varying float vA; void main(){ float a=smoothstep(0.5,0.0,length(gl_PointCoord-0.5))*vA*0.55; gl_FragColor=vec4(vec3(0.85,0.88,1.0),a); }` }));
+  stars.frustumCulled = false; scene.add(stars);
   const camera = new THREE.PerspectiveCamera(40, 1, .1, 100); camera.position.set(0, 0, 10);
 
-  /* ---------------- post-processing ---------------- */
   const composer = new EffectComposer(renderer);
   composer.addPass(new RenderPass(scene, camera));
-  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), small ? .7 : .8, .42, .06);
+  let trails = null;
+  if (!small && !rm) { trails = new AfterimagePass(.72); composer.addPass(trails); }
+  const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), small ? .7 : .75, .4, .08);
   composer.addPass(bloom);
   const finalPass = new ShaderPass({
     uniforms: { tDiffuse: { value: null }, uTime: { value: 0 } },
     vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
     fragmentShader: `uniform sampler2D tDiffuse; uniform float uTime; varying vec2 vUv;
-      void main(){ vec2 uv=vUv; vec2 c=uv-0.5; float k=0.0022*dot(c,c)*4.0;
+      void main(){ vec2 uv=vUv; vec2 c=uv-0.5; float k=0.0026*dot(c,c)*4.0;
         vec3 col=vec3(texture2D(tDiffuse,uv+c*k*1.6).r, texture2D(tDiffuse,uv).g, texture2D(tDiffuse,uv-c*k*1.6).b);
-        col*=mix(0.62,1.0,smoothstep(0.95,0.2,length(c*vec2(1.0,0.85))));
+        col*=mix(0.6,1.0,smoothstep(0.95,0.2,length(c*vec2(1.0,0.85))));
         float n=fract(sin(dot(uv*vec2(1234.5,4321.1)+fract(uTime),vec2(12.9898,78.233)))*43758.5453);
         col+=(n-0.5)*0.035; gl_FragColor=vec4(col,1.0); }`,
   });
   composer.addPass(finalPass);
 
-  /* ---------------- layout + scroll mapping ---------------- */
+  /* ---------------- layout + scroll ---------------- */
   const secs = [...document.querySelectorAll('[data-k]')];
-  let centers = [], mobile = false;
+  let centers = [];
+  const offs = Array.from({ length: 9 }, () => new THREE.Vector3()), scales = new Array(9).fill(1);
   const hudN = document.getElementById('hud-n'), hudT = document.getElementById('hud-t'), hudB = document.getElementById('hud-bar'), hud = document.getElementById('hud');
   function layout() {
     const w = innerWidth, h = innerHeight, dpr = Math.min(devicePixelRatio || 1, small ? 1.5 : 1.75);
     renderer.setPixelRatio(dpr); renderer.setSize(w, h, false); composer.setPixelRatio(dpr); composer.setSize(w, h);
     bloom.resolution.set(w / 2, h / 2);
     camera.aspect = w / h; camera.fov = w / h < .8 ? 58 : 40; camera.updateProjectionMatrix();
-    uniforms.uDpr.value = dpr;
-    mobile = w < 860;
-    const halfW = Math.tan(camera.fov * Math.PI / 360) * 10 * camera.aspect;
-    const side = Math.min(2.9, halfW * .48);
-    const xs = mobile ? [0, 0, 0, 0, 0, 0, 0, 0, 0] : [0, side, -side, side, -side, side, side, 0, 0];
-    const ys = mobile ? [.6, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, -1.6, 2.6] : [0, 0, 0, 0, 0, 0, 0, -1.9, 2.15];
-    offs.forEach((v, k) => v.set(xs[k], ys[k], k === 7 ? -1 : 0));
-    uniforms.uScale.value = mobile ? Math.min(.78, halfW / 3.2) : 1;
+    mu.uDpr.value = dpr; su.uDpr.value = dpr;
+    const mobile = w < 860, halfW = Math.tan(camera.fov * Math.PI / 360) * 10 * camera.aspect, side = Math.min(2.9, halfW * .48);
+    const xs = mobile ? [0, 0, 0, 0, 0, 0, 0, 0, 0] : [side * .95, side, -side, side, -side, side, side, 0, 0];
+    const ys = mobile ? [1.3, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, -1.4, 2.6] : [.1, 0, 0, 0, 0, 0, 0, -1.7, 2.15];
+    const zs = [0, 0, 0, 0, 0, 0, 0, -2.2, 0];
+    offs.forEach((v, k) => v.set(xs[k], ys[k], zs[k]));
+    const s = mobile ? Math.min(.78, halfW / 3.2) : 1;
+    for (let k = 0; k < 9; k++) scales[k] = s;
+    scales[0] = mobile ? .72 : 1.05; scales[7] = mobile ? .9 : 1.45;
     centers = secs.map(s => { const r = s.getBoundingClientRect(); return { k: +s.dataset.k, c: r.top + scrollY + r.height / 2, name: s.dataset.name }; });
   }
   const pAt = y => {
@@ -688,34 +710,41 @@ void main(){ vec2 c=gl_PointCoord-0.5; float a=smoothstep(0.5,0.05,length(c))*vA
     for (let i = 1; i < centers.length; i++) if (mid < centers[i].c) { const a = centers[i - 1], b = centers[i]; return a.k + (b.k - a.k) * (mid - a.c) / (b.c - a.c); }
     return centers[centers.length - 1].k;
   };
+  const sstep = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 
-  /* ---------------- input ---------------- */
   const m = { nx: 0, ny: 0, tx: 0, ty: 0, e: 0, te: 0 };
   addEventListener('pointermove', e => { m.tx = e.clientX / innerWidth * 2 - 1; m.ty = -(e.clientY / innerHeight * 2 - 1); m.te = 1; }, { passive: true });
   document.addEventListener('pointerleave', () => { m.te = 0; });
   addEventListener('blur', () => { m.te = 0; });
   const ray = new THREE.Vector3(), mw = new THREE.Vector3();
-
   addEventListener('resize', layout);
   document.fonts && document.fonts.ready.then(layout);
   layout();
 
-  let p = pAt(scrollY), lastY = scrollY, vel = 0, t = 0, last = performance.now(), hudOn = false, first = true;
+  let p = pAt(scrollY), lastY = scrollY, vel = 0, t = 0, last = performance.now(), hudOn = false, frames = 0;
   function frame(now) {
-    const dt = Math.min(.05, (now - last) / 1000); last = now;
+    const dt = Math.min(1 / 30, Math.max(1 / 240, (now - last) / 1000)); last = now;
     if (!rm) t += dt;
-    const pt = pAt(scrollY); p += (pt - p) * Math.min(1, dt * 4.2);
+    p += (pAt(scrollY) - p) * Math.min(1, dt * 3.2);
     vel += (Math.min(1.6, Math.abs(scrollY - lastY) / Math.max(1, innerHeight) * 18) - vel) * .08; lastY = scrollY;
-    m.nx += (m.tx - m.nx) * .1; m.ny += (m.ty - m.ny) * .1; m.e += ((rm ? 0 : m.te) - m.e) * .05;
+    m.nx += (m.tx - m.nx) * .12; m.ny += (m.ty - m.ny) * .12; m.e += ((rm ? 0 : m.te) - m.e) * .05;
     ray.set(m.nx, m.ny, .5).unproject(camera).sub(camera.position).normalize();
     mw.copy(camera.position).addScaledVector(ray, -camera.position.z / ray.z);
-    camera.position.x += (m.nx * .35 - camera.position.x) * .04; camera.position.y += (m.ny * .22 - camera.position.y) * .04; camera.lookAt(0, 0, 0);
-    uniforms.uTime.value = t + 8; uniforms.uP.value = p; uniforms.uVel.value = vel; uniforms.uEnergy.value = m.e;
-    uniforms.uMouse.value.copy(mw);
-    uniforms.uSpin.value.set(Math.sin(t * .32) * .55 + m.nx * .45, Math.sin(t * .23) * .16 - m.ny * .25);
-    finalPass.uniforms.uTime.value = t;
+    camera.position.x += (m.nx * .4 - camera.position.x) * .035; camera.position.y += (m.ny * .25 - camera.position.y) * .035; camera.lookAt(0, 0, 0);
+
+    const A = Math.min(8, Math.floor(p)), B = Math.min(8, A + 1), fe = A === B ? 0 : sstep(.18, .82, p - A);
+    vu.tA.value = targets[A]; vu.tB.value = targets[B]; vu.uTypeA.value = types[A]; vu.uTypeB.value = types[B];
+    vu.uOffA.value.copy(offs[A]); vu.uOffB.value.copy(offs[B]); vu.uScaleA.value = scales[A]; vu.uScaleB.value = scales[B];
+    vu.uMix.value = fe; vu.uTime.value = t + 4; vu.uDt.value = dt; posVar.material.uniforms.uDt.value = dt;
+    vu.uVel.value = vel; vu.uEnergy.value = m.e; vu.uMouse.value.copy(mw);
+    vu.uSpin.value.set(Math.sin(t * .32) * .55 + m.nx * .45, Math.sin(t * .23) * .16 - m.ny * .25);
+    gpu.compute();
+    mu.tPos.value = gpu.getCurrentRenderTarget(posVar).texture; mu.tVel.value = gpu.getCurrentRenderTarget(velVar).texture;
+    mu.uCa0.value.copy(ca[A]); mu.uCb0.value.copy(cb[A]); mu.uCa1.value.copy(ca[B]); mu.uCb1.value.copy(cb[B]); mu.uMix.value = fe;
+    finalPass.uniforms.uTime.value = t; su.uTime.value = t; stars.rotation.y = p * .12 + t * .004; stars.rotation.x = p * .05;
     composer.render();
-    if (first) { first = false; window.__vfReady && window.__vfReady(); }
+    if (++frames === 8) window.__vfReady && window.__vfReady();
+
     const k = Math.round(p), c = centers.find(c => c.k === k) || centers[0];
     if (hudN.textContent !== String(k).padStart(2, '0')) { hudN.textContent = String(k).padStart(2, '0'); hudT.textContent = c.name; }
     hudB.style.transform = `scaleX(${p / 8})`;
