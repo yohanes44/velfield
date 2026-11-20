@@ -267,7 +267,7 @@ footer a:hover{color:var(--fg)}
       <span class="label fade">What we build</span>
       <span class="big fade">04</span>
       <h2><span class="mask"><span>Games</span></span></h2>
-      <p class="fade">Mobile games with real craft: story, puzzles and polish, built and published by us.</p>
+      <p class="fade">Mobile games with real craft: story, puzzles and polish, built and published by us. In the works: CrimeGhost and Locked at 1600.</p>
       <div class="tags fade"><span>Mobile</span><span>Story</span><span>Puzzles</span></div>
     </div></div>
   </section>
@@ -282,7 +282,18 @@ footer a:hover{color:var(--fg)}
     </div></div>
   </section>
 
-  <section class="panel" id="process" data-k="6" data-side="left" data-name="How we work">
+  <section class="panel" id="inkconsent" data-k="6" data-side="right" data-name="InkConsent">
+    <div class="wrap"><div class="pcopy">
+      <span class="label fade">Our products</span>
+      <h2><span class="mask"><span>Ink<span style="color:var(--pink)">Consent</span></span></span></h2>
+      <p class="fade" style="margin-bottom:14px"><span class="pill"><i></i>Live on Google Play</span></p>
+      <p class="fade">Consent records for tattoo studios. Clients sign on the studio's phone, on their own phone or on paper; every consent is stamped with the minute it was signed and filed as a PDF, kept for as long as the studio's rules say.</p>
+      <div class="tags fade"><span>Android</span><span>Web app</span><span>PDF records</span></div>
+      <div class="links fade" style="margin-top:18px"><a href="https://inkconsent.velfield.com/">Website</a><a href="https://play.google.com/store/apps/details?id=com.inkconsent.inkconsent">Google Play</a><a href="https://inkconsent.velfield.com/privacy">Privacy policy</a></div>
+    </div></div>
+  </section>
+
+  <section class="panel" id="process" data-k="7" data-side="left" data-name="How we work">
     <div class="wrap"><div class="pcopy">
       <span class="label fade">How we work</span>
       <h2><span class="mask"><span>Idea to</span></span><span class="mask"><span class="grad">live product.</span></span></h2>
@@ -295,7 +306,7 @@ footer a:hover{color:var(--fg)}
     </div></div>
   </section>
 
-  <section class="panel" id="name" data-k="7" data-name="Why Velfield">
+  <section class="panel" id="name" data-k="8" data-name="Why Velfield">
     <div class="wrap"><div class="name-copy">
       <span class="label fade">Why "Velfield"</span>
       <p class="quote"><span class="mask"><span>A velocity field describes</span></span><span class="mask"><span>how every part of a system</span></span><span class="mask"><span>moves, <span class="grad">together.</span></span></span></p>
@@ -303,7 +314,7 @@ footer a:hover{color:var(--fg)}
     </div></div>
   </section>
 
-  <section class="contact" id="contact" data-k="8" data-name="Contact">
+  <section class="contact" id="contact" data-k="9" data-name="Contact">
     <div class="wrap">
       <span class="label fade">Contact</span>
       <h2><span class="mask"><span>Have a project</span></span><span class="mask"><span class="grad">in mind?</span></span></h2>
@@ -520,7 +531,24 @@ function start() {
   const tGhost = build([[1, fromCanvas(gStroke, 4.4, () => J(.008))]]);
   progress(74);
 
-  // 6 torus knot (process: the loop of discover, design, build, run)
+  // 6 consent document (InkConsent): page, text lines, signature, stamp
+  const docC = canvasPts(x => {
+    x.lineWidth = 3.2;
+    x.beginPath(); x.roundRect(146, 64, 220, 384, 18); x.stroke();
+    x.lineWidth = 4.2; x.beginPath(); x.moveTo(178, 116); x.lineTo(290, 116); x.stroke();
+    x.lineWidth = 2.4;
+    [[160, 334], [190, 318], [220, 330], [250, 300]].forEach(([y, x2]) => { x.beginPath(); x.moveTo(178, y); x.lineTo(x2, y); x.stroke(); });
+    x.lineWidth = 3;
+    x.beginPath(); x.moveTo(176, 352);
+    x.bezierCurveTo(190, 300, 206, 300, 204, 336); x.bezierCurveTo(202, 372, 222, 360, 232, 330);
+    x.bezierCurveTo(240, 306, 252, 318, 250, 340); x.bezierCurveTo(248, 362, 266, 356, 280, 334); x.stroke();
+    x.lineWidth = 2.2; x.beginPath(); x.moveTo(176, 374); x.lineTo(270, 374); x.stroke();
+    x.lineWidth = 2.8; x.beginPath(); x.arc(322, 392, 30, 0, 6.2832); x.stroke();
+    x.lineWidth = 3.4; x.beginPath(); x.moveTo(308, 392); x.lineTo(318, 403); x.lineTo(338, 380); x.stroke();
+  });
+  const tDoc = build([[1, fromCanvas(docC, 4.6, () => J(.008))]]);
+
+  // 7 torus knot (process: the loop of discover, design, build, run)
   const kp = t => { const r = Math.cos(3 * t) + 2.25; return [r * Math.cos(2 * t) * .66, r * Math.sin(2 * t) * .66, -Math.sin(3 * t) * 1.2 * .66]; };
   const tKnot = build([[1, () => {
     const t = rnd() * 6.2832, c = kp(t), e = .001, a1 = kp(t + e), a0 = kp(t - e);
@@ -532,7 +560,7 @@ function start() {
   }]]);
   progress(84);
 
-  // 8 logo waves (contact)
+  // 9 logo waves (contact)
   const logoC = canvasPts((x, S) => { x.scale(S / 48, S / 48); x.lineWidth = 1.3; const p = new Path2D('M6 16c8-6 14 6 22 0s14-4 14-4M6 26c8-6 14 6 22 0s14-4 14-4M6 36c8-6 14 6 22 0s14-4 14-4'); x.stroke(p); });
   const tLogo = build([[1, fromCanvas(logoC, 3.6, () => J(.008))]]);
   progress(92);
@@ -564,10 +592,10 @@ float snoise(vec3 v){
 }`;
   const vertexShader = `
 attribute vec4 aSeed; attribute float aHash;
-attribute vec3 aT1; attribute vec3 aT2; attribute vec3 aT3; attribute vec3 aT4; attribute vec3 aT5; attribute vec3 aT6; attribute vec3 aT8;
+attribute vec3 aT1; attribute vec3 aT2; attribute vec3 aT3; attribute vec3 aT4; attribute vec3 aT5; attribute vec3 aT6; attribute vec3 aT7; attribute vec3 aT9;
 uniform float uTime, uP, uEnergy, uVel, uDpr, uScale, uGain;
 uniform vec3 uMouse; uniform vec2 uSpin;
-uniform vec3 uOff[9]; uniform vec3 uCa[9]; uniform vec3 uCb[9]; uniform float uSz[9];
+uniform vec3 uOff[10]; uniform vec3 uCa[10]; uniform vec3 uCb[10]; uniform float uSz[10];
 varying vec3 vColor; varying float vAlpha;
 ${NOISE}
 vec3 river(out float fade){
@@ -596,19 +624,20 @@ void main(){
   float S=0.75;
   float fl=clamp(fe*(1.0+S)-aHash*S,0.0,1.0);
   float pe=i+fl;
-  float w[9];
-  for(int k=0;k<9;k++){ w[k]=max(0.0,1.0-abs(pe-float(k))); }
+  float w[10];
+  for(int k=0;k<10;k++){ w[k]=max(0.0,1.0-abs(pe-float(k))); }
   vec3 pos=vec3(0.0); vec3 col=vec3(0.0); float sz=0.0;
-  float wr=w[0]+w[7]; float fade=1.0;
-  if(wr>0.0){ vec3 rp=river(fade); pos+=w[0]*(rp+uOff[0])+w[7]*(rp*0.85+uOff[7]); }
+  float wr=w[0]+w[8]; float fade=1.0;
+  if(wr>0.0){ vec3 rp=river(fade); pos+=w[0]*(rp+uOff[0])+w[8]*(rp*0.85+uOff[8]); }
   pos+=w[1]*(spin(aT1)*uScale+uOff[1]);
   pos+=w[2]*(spin(aT2)*uScale+uOff[2]);
   pos+=w[3]*(spin(aT3)*uScale+uOff[3]);
   pos+=w[4]*(spin(aT4)*uScale+uOff[4]);
   pos+=w[5]*(spin(aT5)*uScale+uOff[5]);
   pos+=w[6]*(spin(aT6)*uScale+uOff[6]);
-  pos+=w[8]*(spin(aT8)*uScale+uOff[8]);
-  for(int k=0;k<9;k++){ col+=w[k]*mix(uCa[k],uCb[k],aHash); sz+=w[k]*uSz[k]; }
+  pos+=w[7]*(spin(aT7)*uScale+uOff[7]);
+  pos+=w[9]*(spin(aT9)*uScale+uOff[9]);
+  for(int k=0;k<10;k++){ col+=w[k]*mix(uCa[k],uCb[k],aHash); sz+=w[k]*uSz[k]; }
   // swarm through the velocity field while morphing, and when scrolling fast
   float tb=sin(3.14159265*fl)*1.7+min(uVel,1.4)*0.45;
   if(tb>0.002){ vec3 q=pos*0.32+vec3(0.0,0.0,uTime*0.12); pos+=vec3(snoise(q),snoise(q+31.4),snoise(q+73.1))*tb; }
@@ -630,20 +659,20 @@ varying vec3 vColor; varying float vAlpha;
 void main(){ float d=length(gl_PointCoord-0.5); float a=(smoothstep(0.5,0.36,d)+smoothstep(0.5,0.0,d)*0.2)*vAlpha; if(a<0.003) discard; gl_FragColor=vec4(vColor,a); }`;
 
   const C = h => new THREE.Color(h);
-  const ca = ['#7C6BFF', '#F06A95', '#6E8BFF', '#8B6BFF', '#FF6F9F', '#7FA0FF', '#F06A95', '#7C6BFF', '#F06A95'].map(C);
-  const cb = ['#F06A95', '#FFB0CB', '#BFD8FF', '#63E0FF', '#FFB36B', '#C08BFF', '#7C6BFF', '#F06A95', '#7C9BFF'].map(C);
-  const offs = Array.from({ length: 9 }, () => new THREE.Vector3());
+  const ca = ['#7C6BFF', '#F06A95', '#6E8BFF', '#8B6BFF', '#FF6F9F', '#7FA0FF', '#6E8BFF', '#F06A95', '#7C6BFF', '#F06A95'].map(C);
+  const cb = ['#F06A95', '#FFB0CB', '#BFD8FF', '#63E0FF', '#FFB36B', '#C08BFF', '#FFB0CB', '#7C6BFF', '#F06A95', '#7C9BFF'].map(C);
+  const offs = Array.from({ length: 10 }, () => new THREE.Vector3());
   const uniforms = {
     uTime: { value: 0 }, uP: { value: 0 }, uEnergy: { value: 0 }, uVel: { value: 0 }, uDpr: { value: 1 }, uScale: { value: 1 }, uGain: { value: small ? .62 : .5 },
     uMouse: { value: new THREE.Vector3(99, 99, 0) }, uSpin: { value: new THREE.Vector2() },
     uOff: { value: offs }, uCa: { value: ca }, uCb: { value: cb },
-    uSz: { value: [1.7, 1.5, 1.5, 1.5, 1.5, 1.4, 1.5, 1.6, 1.25] },
+    uSz: { value: [1.7, 1.5, 1.5, 1.5, 1.5, 1.4, 1.4, 1.5, 1.6, 1.25] },
   };
   const geo = new THREE.BufferGeometry();
   geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
   geo.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 4));
   geo.setAttribute('aHash', new THREE.BufferAttribute(hash, 1));
-  [['aT1', tPhone], ['aT2', tBrowser], ['aT3', tBack], ['aT4', tPad], ['aT5', tGhost], ['aT6', tKnot], ['aT8', tLogo]].forEach(([n, a]) => geo.setAttribute(n, new THREE.BufferAttribute(a, 3)));
+  [['aT1', tPhone], ['aT2', tBrowser], ['aT3', tBack], ['aT4', tPad], ['aT5', tGhost], ['aT6', tDoc], ['aT7', tKnot], ['aT9', tLogo]].forEach(([n, a]) => geo.setAttribute(n, new THREE.BufferAttribute(a, 3)));
   const mat = new THREE.ShaderMaterial({ uniforms, vertexShader, fragmentShader, transparent: true, depthWrite: false, depthTest: false, blending: THREE.AdditiveBlending });
   const points = new THREE.Points(geo, mat); points.frustumCulled = false;
 
@@ -680,9 +709,9 @@ void main(){ float d=length(gl_PointCoord-0.5); float a=(smoothstep(0.5,0.36,d)+
     mobile = w < 860;
     const halfW = Math.tan(camera.fov * Math.PI / 360) * 10 * camera.aspect;
     const side = Math.min(2.9, halfW * .48);
-    const xs = mobile ? [0, 0, 0, 0, 0, 0, 0, 0, 0] : [0, side, -side, side, -side, side, side, 0, 0];
-    const ys = mobile ? [.6, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, -1.6, 2.6] : [0, 0, 0, 0, 0, 0, 0, -1.9, 2.15];
-    offs.forEach((v, k) => v.set(xs[k], ys[k], k === 7 ? -1 : 0));
+    const xs = mobile ? [0, 0, 0, 0, 0, 0, 0, 0, 0, 0] : [0, side, -side, side, -side, side, -side, side, 0, 0];
+    const ys = mobile ? [.6, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, 1.9, -1.6, 2.6] : [0, 0, 0, 0, 0, 0, 0, 0, -1.9, 2.15];
+    offs.forEach((v, k) => v.set(xs[k], ys[k], k === 8 ? -1 : 0));
     uniforms.uScale.value = mobile ? Math.min(.78, halfW / 3.2) : 1;
     centers = secs.map(s => { const r = s.getBoundingClientRect(); return { k: +s.dataset.k, c: r.top + scrollY + r.height / 2, name: s.dataset.name }; });
   }
@@ -722,7 +751,7 @@ void main(){ float d=length(gl_PointCoord-0.5); float a=(smoothstep(0.5,0.36,d)+
     if (first) { first = false; window.__vfReady && window.__vfReady(); }
     const k = Math.round(p), c = centers.find(c => c.k === k) || centers[0];
     if (hudN.textContent !== String(k).padStart(2, '0')) { hudN.textContent = String(k).padStart(2, '0'); hudT.textContent = c.name; }
-    hudB.style.transform = `scaleX(${p / 8})`;
+    hudB.style.transform = `scaleX(${p / 9})`;
     const on = scrollY > innerHeight * .5; if (on !== hudOn) { hudOn = on; hud.classList.toggle('on', on); }
     requestAnimationFrame(frame);
   }
