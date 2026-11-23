@@ -19,10 +19,10 @@
       const r = host.getBoundingClientRect(); dpr = Math.min(devicePixelRatio || 1, 1.5);
       w = r.width; h = r.height; cv.width = w * dpr; cv.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = '#0A0A0A'; ctx.fillRect(0, 0, w, h);
-      const n = Math.min(lite ? 260 : 520, Math.round(w * h / (lite ? 3200 : 1900)));
+      const n = Math.min(lite ? 140 : 300, Math.round(w * h / (lite ? 6000 : 3400)));
       ps = Array.from({ length: n }, () => spawn(true));
     };
-    const spawn = any => ({ x: any ? Math.random() * w : -10, y: Math.random() * h, life: 200 + Math.random() * 400, a: .18 + Math.random() * .32 });
+    const spawn = any => ({ x: any ? Math.random() * w : -10, y: Math.random() * h, life: 200 + Math.random() * 400, a: .08 + Math.random() * .2 });
     const field = (x, y) => {
       const ang = Math.sin(x * .0017 + t * .00035) * 1.1 + Math.cos(y * .0023 - t * .00028) * .9;
       let vx = .55 + Math.cos(ang) * .45, vy = Math.sin(ang) * .55;
@@ -31,10 +31,10 @@
       return [vx, vy];
     };
     const frame = () => {
-      t += 16; ctx.fillStyle = 'rgba(10,10,10,0.09)'; ctx.fillRect(0, 0, w, h);
+      t += 16; ctx.fillStyle = 'rgba(10,10,10,0.16)'; ctx.fillRect(0, 0, w, h);
       ctx.lineWidth = 1; ctx.lineCap = 'round';
       for (const p of ps) {
-        const [vx, vy] = field(p.x, p.y), nx = p.x + vx * 1.15, ny = p.y + vy * 1.15;
+        const [vx, vy] = field(p.x, p.y), nx = p.x + vx * .8, ny = p.y + vy * .8;
         ctx.strokeStyle = `rgba(255,255,255,${p.a})`; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny); ctx.stroke();
         p.x = nx; p.y = ny; p.life--;
         if (p.x > w + 10 || p.y < -10 || p.y > h + 10 || p.life < 0) Object.assign(p, spawn(p.life < 0));
