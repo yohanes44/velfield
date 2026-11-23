@@ -1,11 +1,11 @@
 /* Velfield site. Own identity: ink-plum night sky with a berry glow, lavender-white pages, pink accent; Syne headings, Manrope text. */
 :root{
-  --ink:#1C2940; --navy2:#263752; --pink:#A9C3EC; --pink-d:#4C6FA8;
-  --blue:#4C6FA8; --blue-h:#3D5E94; --sky-soft:#A9C3EC; --sky-soft-h:#C2D5F2;
-  --light:#F6F8FB; --tint:#EBF1F8; --white:#fff;
-  --text:#1B2533; --muted:#5A6576; --rule:rgba(27,37,51,.12);
-  --on-dark:#F4F7FC; --on-dark-2:rgba(228,236,248,.74);
-  --sky:linear-gradient(160deg,#1A263C 0%,#263752 100%);
+  --ink:#18302F; --navy2:#224240; --pink:#9FD6CC; --pink-d:#3A877F;
+  --blue:#3A877F; --blue-h:#2F716A; --sky-soft:#9FD6CC; --sky-soft-h:#BDE5DD;
+  --light:#F5F9F8; --tint:#E7F1EE; --white:#fff;
+  --text:#17292A; --muted:#55676A; --rule:rgba(23,41,42,.12);
+  --on-dark:#F3F9F7; --on-dark-2:rgba(226,240,236,.74);
+  --sky:linear-gradient(160deg,#162B2B 0%,#22423F 100%);
   --display:"Syne",system-ui,sans-serif; --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
   --wrap:1120px; --r:14px; --ease:cubic-bezier(.2,.7,.2,1);
   color-scheme:light;
@@ -24,7 +24,7 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance}
 
 /* header: full-width bar, underline for the current page, pink call to action */
 .top{position:fixed;inset:0 0 auto;z-index:50;padding-top:env(safe-area-inset-top,0px);transition:background .3s,border-color .3s;border-bottom:1px solid transparent;color:var(--on-dark)}
-.top.scrolled{background:rgba(28,41,64,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-color:rgba(255,255,255,.1)}
+.top.scrolled{background:rgba(24,48,47,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-color:rgba(255,255,255,.1)}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:20px;height:72px}
 .brand{display:flex;color:inherit;text-decoration:none}
 .top .wm{height:22px;width:auto;display:block}
@@ -50,7 +50,7 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance}
 
 /* buttons */
 .btn{display:inline-flex;align-items:center;gap:8px;font:700 15px var(--body);padding:13px 22px;border-radius:10px;text-decoration:none;transition:background .2s,color .2s,border-color .2s}
-.btn.pink{background:var(--sky-soft);color:#14213A}
+.btn.pink{background:var(--sky-soft);color:#0F2522}
 .btn.pink:hover{background:var(--sky-soft-h)}
 .pill,.light .btn.pink,.paper .btn.pink{background:var(--blue);color:#fff}
 .pill:hover,.light .btn.pink:hover,.paper .btn.pink:hover{background:var(--blue-h)}
@@ -214,7 +214,7 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance}
 .sig span{color:var(--muted);font-size:15px}
 .textlink{font-weight:700;text-decoration:none;border-bottom:2px solid var(--blue)}
 img.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover}
-.tint .svc{border-color:rgba(27,37,51,.14)}
+.tint .svc{border-color:rgba(23,41,42,.14)}
 @media (max-width:760px){.split{grid-template-columns:1fr;gap:28px}.photo{max-width:220px}}
 /* ---- light life ---- */
 .hero{position:relative;overflow:hidden}
@@ -227,9 +227,9 @@ img.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover}
 .arrow,.textlink,.shead p a{transition:letter-spacing .25s}
 .pcard:hover .arrow,.textlink:hover{letter-spacing:.02em}
 .svc{transition:background .25s}
-.svc:hover{background:rgba(76,111,168,.05)}
+.svc:hover{background:rgba(58,135,127,.06)}
 .pri,.ccard,.post,.prod{transition:border-color .25s,transform .25s}
-.pri:hover,.ccard:hover,.post:hover{border-color:rgba(76,111,168,.55)}
+.pri:hover,.ccard:hover,.post:hover{border-color:rgba(58,135,127,.55)}
 @media (prefers-reduced-motion:no-preference){
     @keyframes flow{to{stroke-dashoffset:-340}}
 }
@@ -238,8 +238,8 @@ img.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover}
 .phero .wrap{position:relative;z-index:1}
 .flowfield{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block}
 .ctaband p a{color:#fff;text-decoration:underline;text-underline-offset:3px}
-.chip{background:rgba(31,45,70,.94)}
-.chip.lit{background:rgba(46,66,98,.97);border-color:rgba(169,195,236,.55)}
+.chip{background:rgba(29,56,54,.94)}
+.chip.lit{background:rgba(42,76,72,.97);border-color:rgba(159,214,204,.55)}
 /* scroll choreography (each element animates once, like an "animate on scroll" site) */
 body{overflow-x:clip}
 @media (prefers-reduced-motion:no-preference){
