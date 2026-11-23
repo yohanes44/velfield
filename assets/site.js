@@ -1,28 +1,60 @@
+// velfield.com: header state, mobile menu, copy buttons, velocity-field animation, scroll choreography.
 (() => {
   const top = document.getElementById('top');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // header turns solid once the page scrolls
   const onScroll = () => top && top.classList.toggle('scrolled', scrollY > 24);
   onScroll(); addEventListener('scroll', onScroll, { passive: true });
+
+  // mobile menu: button, Escape, tap outside, or choosing a link closes it
   const btn = document.querySelector('.menu');
-  if (btn) btn.addEventListener('click', () => { const o = top.classList.toggle('open'); btn.setAttribute('aria-expanded', o); });
+  const setMenu = open => { top.classList.toggle('open', open); btn.setAttribute('aria-expanded', open); };
+  if (btn) {
+    btn.addEventListener('click', () => setMenu(!top.classList.contains('open')));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && top.classList.contains('open')) { setMenu(false); btn.focus(); } });
+    document.addEventListener('click', e => { if (top.classList.contains('open') && !top.contains(e.target)) setMenu(false); });
+    top.querySelectorAll('.nav a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+  }
+
+  // copy-to-clipboard buttons on the contact page
   document.querySelectorAll('.copy').forEach(b => b.addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; }
     catch { b.textContent = 'Select and copy'; }
     setTimeout(() => (b.textContent = 'Copy'), 1800);
   }));
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { document.querySelectorAll('[data-a]').forEach(el => el.classList.add('on')); return; }
 
-  // velocity field: soft particles drifting along a smooth flow, with short fading trails
+  // scroll choreography: reveal each [data-a] element once when it reaches the screen
+  document.documentElement.classList.add('ready');
+  const els = [...document.querySelectorAll('[data-a]')];
+  const show = el => el.classList.add('on');
+  if (reduce || !('IntersectionObserver' in window)) els.forEach(show);
+  else {
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { show(e.target); io.unobserve(e.target); } }),
+      { rootMargin: '0px 0px -60px 0px', threshold: .08 });
+    els.forEach(el => io.observe(el));
+  }
+  if (reduce) return;
+
+  // capability tiles on the home page take turns lighting up
+  const chips = [...document.querySelectorAll('.chip')];
+  if (chips.length) { let i = 0; const lit = () => { chips.forEach((c, k) => c.classList.toggle('lit', k === i)); i = (i + 1) % chips.length; }; lit(); setInterval(lit, 2400); }
+
+  // velocity field: faint particles drifting along a smooth flow behind dark page headers.
+  // Budget: fewer particles and 30 fps on small or low-core devices; pauses off-screen, in hidden tabs,
+  // and after 25 s without interaction (resumes when the pointer moves over it).
+  const small = innerWidth < 760 || (navigator.hardwareConcurrency || 8) <= 4;
   document.querySelectorAll('.flowfield').forEach(cv => {
     const host = cv.parentElement, ctx = cv.getContext('2d'), lite = cv.dataset.lite === '1';
-    let w = 0, h = 0, dpr = 1, ps = [], run = false, t = 0, raf = 0, mx = -1e4, my = -1e4;
-    const size = () => {
-      const r = host.getBoundingClientRect(); dpr = Math.min(devicePixelRatio || 1, 1.5);
-      w = r.width; h = r.height; cv.width = w * dpr; cv.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, h);
-      const n = Math.min(lite ? 140 : 300, Math.round(w * h / (lite ? 6000 : 3400)));
-      ps = Array.from({ length: n }, () => spawn(true));
-    };
+    let w = 0, h = 0, ps = [], run = false, raf = 0, t = 0, last = 0, awakeUntil = 0, vis = true, mx = -1e4, my = -1e4;
+    const frameMs = small ? 33 : 16;
     const spawn = any => ({ x: any ? Math.random() * w : -10, y: Math.random() * h, life: 200 + Math.random() * 400, a: .08 + Math.random() * .2 });
+    const size = () => {
+      const r = host.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, small ? 1 : 1.5);
+      w = r.width; h = r.height; cv.width = w * dpr; cv.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+      const cap = (lite ? 140 : 300) * (small ? .45 : 1);
+      ps = Array.from({ length: Math.min(cap, Math.round(w * h / (lite ? 6000 : 3400))) }, () => spawn(true));
+    };
     const field = (x, y) => {
       const ang = Math.sin(x * .0017 + t * .00035) * 1.1 + Math.cos(y * .0023 - t * .00028) * .9;
       let vx = .55 + Math.cos(ang) * .45, vy = Math.sin(ang) * .55;
@@ -30,33 +62,33 @@
       if (d2 < 26000) { const k = (1 - d2 / 26000) * 1.6; vx += -dy / 90 * k; vy += dx / 90 * k; }
       return [vx, vy];
     };
-    const frame = () => {
-      t += 16; ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fillRect(0, 0, w, h); ctx.globalCompositeOperation = 'source-over';
-      ctx.lineWidth = 1; ctx.lineCap = 'round';
+    const frame = now => {
+      raf = 0;
+      if (!run) return;
+      if (now > awakeUntil) { run = false; return; }
+      raf = requestAnimationFrame(frame);
+      if (now - last < frameMs) return;
+      const step = Math.min((now - last) / 16, 3); last = now; t += 16 * step;
+      ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = `rgba(0,0,0,${.16 * step})`; ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'source-over'; ctx.lineWidth = 1; ctx.lineCap = 'round';
       for (const p of ps) {
-        const [vx, vy] = field(p.x, p.y), nx = p.x + vx * .8, ny = p.y + vy * .8;
+        const [vx, vy] = field(p.x, p.y), nx = p.x + vx * .8 * step, ny = p.y + vy * .8 * step;
         ctx.strokeStyle = `rgba(255,255,255,${p.a})`; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny); ctx.stroke();
-        p.x = nx; p.y = ny; p.life--;
+        p.x = nx; p.y = ny; p.life -= step;
         if (p.x > w + 10 || p.y < -10 || p.y > h + 10 || p.life < 0) Object.assign(p, spawn(p.life < 0));
       }
-      raf = run ? requestAnimationFrame(frame) : 0;
     };
-    const go = on => { if (on && !run) { run = true; raf = requestAnimationFrame(frame); } else if (!on) { run = false; cancelAnimationFrame(raf); } };
-    size(); addEventListener('resize', () => { size(); });
-    host.addEventListener('pointermove', e => { const r = host.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; });
+    const wake = ms => { awakeUntil = Math.max(awakeUntil, performance.now() + ms); update(); };
+    const update = () => {
+      const want = vis && !document.hidden && performance.now() < awakeUntil;
+      if (want && !run) { run = true; last = performance.now(); raf = requestAnimationFrame(frame); }
+      else if (!want) { run = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+    };
+    size(); wake(25000);
+    let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(size, 150); });
+    host.addEventListener('pointermove', e => { const r = host.getBoundingClientRect(); mx = e.clientX - r.left; my = e.clientY - r.top; wake(10000); });
     host.addEventListener('pointerleave', () => { mx = my = -1e4; });
-    let vis = true;
-    new IntersectionObserver(es => { vis = es[0].isIntersecting; go(vis && !document.hidden); }).observe(host);
-    document.addEventListener('visibilitychange', () => go(vis && !document.hidden));
+    new IntersectionObserver(es => { vis = es[0].isIntersecting; update(); }).observe(host);
+    document.addEventListener('visibilitychange', update);
   });
-  // capability tiles take turns lighting up
-  const chips = [...document.querySelectorAll('.chip')];
-  if (chips.length) { let i = 0; const lit = () => { chips.forEach((c, k) => c.classList.toggle('lit', k === i)); i = (i + 1) % chips.length; }; lit(); setInterval(lit, 2400); }
-  // scroll choreography: reveal each [data-a] element once when it enters the screen
-  const els = [...document.querySelectorAll('[data-a]')];
-  const show = el => el.classList.add('on');
-  if (!('IntersectionObserver' in window)) { els.forEach(show); return; }
-  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { show(e.target); io.unobserve(e.target); } }), { rootMargin: '0px 0px -60px 0px', threshold: .08 });
-  els.forEach(el => io.observe(el));
-  setTimeout(() => els.forEach(el => { if (el.getBoundingClientRect().top < innerHeight) show(el); }), 2500);
 })();
