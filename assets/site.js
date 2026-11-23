@@ -18,7 +18,7 @@
     const size = () => {
       const r = host.getBoundingClientRect(); dpr = Math.min(devicePixelRatio || 1, 1.5);
       w = r.width; h = r.height; cv.width = w * dpr; cv.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.fillStyle = '#0A0A0A'; ctx.fillRect(0, 0, w, h);
+      ctx.clearRect(0, 0, w, h);
       const n = Math.min(lite ? 140 : 300, Math.round(w * h / (lite ? 6000 : 3400)));
       ps = Array.from({ length: n }, () => spawn(true));
     };
@@ -31,11 +31,11 @@
       return [vx, vy];
     };
     const frame = () => {
-      t += 16; ctx.fillStyle = 'rgba(10,10,10,0.16)'; ctx.fillRect(0, 0, w, h);
+      t += 16; ctx.globalCompositeOperation = 'destination-out'; ctx.fillStyle = 'rgba(0,0,0,0.16)'; ctx.fillRect(0, 0, w, h); ctx.globalCompositeOperation = 'source-over';
       ctx.lineWidth = 1; ctx.lineCap = 'round';
       for (const p of ps) {
         const [vx, vy] = field(p.x, p.y), nx = p.x + vx * .8, ny = p.y + vy * .8;
-        ctx.strokeStyle = `rgba(255,255,255,${p.a})`; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny); ctx.stroke();
+        ctx.strokeStyle = `rgba(200,218,245,${p.a})`; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny); ctx.stroke();
         p.x = nx; p.y = ny; p.life--;
         if (p.x > w + 10 || p.y < -10 || p.y > h + 10 || p.life < 0) Object.assign(p, spawn(p.life < 0));
       }
