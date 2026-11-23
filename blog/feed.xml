@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<channel>
+  <title>Velfield blog</title>
+  <link>https://velfield.com/blog/</link>
+  <atom:link href="https://velfield.com/blog/feed.xml" rel="self" type="application/rss+xml"/>
+  <description>News and notes from Velfield, an independent software studio.</description>
+  <language>en</language>
+  <lastBuildDate>Mon, 23 Nov 2026 00:00:00 +0000</lastBuildDate>
+  <item><title>Introducing Velfield</title><link>https://velfield.com/blog/introducing-velfield/</link><guid>https://velfield.com/blog/introducing-velfield/</guid><pubDate>Mon, 23 Nov 2026 00:00:00 +0000</pubDate><description>Who we are, what we build, and why the studio is named after a velocity field.</description></item>
+</channel>
+</rss>
