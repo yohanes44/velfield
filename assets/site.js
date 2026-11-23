@@ -35,7 +35,7 @@
       ctx.lineWidth = 1; ctx.lineCap = 'round';
       for (const p of ps) {
         const [vx, vy] = field(p.x, p.y), nx = p.x + vx * .8, ny = p.y + vy * .8;
-        ctx.strokeStyle = `rgba(196,236,212,${p.a})`; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny); ctx.stroke();
+        ctx.strokeStyle = `rgba(255,255,255,${p.a})`; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(nx, ny); ctx.stroke();
         p.x = nx; p.y = ny; p.life--;
         if (p.x > w + 10 || p.y < -10 || p.y > h + 10 || p.life < 0) Object.assign(p, spawn(p.life < 0));
       }
