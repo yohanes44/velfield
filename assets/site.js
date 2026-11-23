@@ -9,7 +9,7 @@
     catch { b.textContent = 'Select and copy'; }
     setTimeout(() => (b.textContent = 'Copy'), 1800);
   }));
-  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { document.querySelectorAll('[data-a]').forEach(el => el.classList.add('on')); return; }
 
   // velocity field: soft particles drifting along a smooth flow, with short fading trails
   document.querySelectorAll('.flowfield').forEach(cv => {
@@ -52,11 +52,11 @@
   // capability tiles take turns lighting up
   const chips = [...document.querySelectorAll('.chip')];
   if (chips.length) { let i = 0; const lit = () => { chips.forEach((c, k) => c.classList.toggle('lit', k === i)); i = (i + 1) % chips.length; }; lit(); setInterval(lit, 2400); }
-  // content below the first screen eases in once; anything already visible is left alone
-  if (!('IntersectionObserver' in window)) return;
-  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { rootMargin: '0px 0px -8% 0px' });
-  document.querySelectorAll('.svc, .pcard, .steps li, .pri, .split > *, .prod, .post, .ccard, .shead').forEach((el, n) => {
-    if (el.getBoundingClientRect().top < innerHeight) return;
-    el.classList.add('rv'); el.style.transitionDelay = (n % 4) * 70 + 'ms'; io.observe(el);
-  });
+  // scroll choreography: reveal each [data-a] element once when it enters the screen
+  const els = [...document.querySelectorAll('[data-a]')];
+  const show = el => el.classList.add('on');
+  if (!('IntersectionObserver' in window)) { els.forEach(show); return; }
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { show(e.target); io.unobserve(e.target); } }), { rootMargin: '0px 0px -60px 0px', threshold: .08 });
+  els.forEach(el => io.observe(el));
+  setTimeout(() => els.forEach(el => { if (el.getBoundingClientRect().top < innerHeight) show(el); }), 2500);
 })();

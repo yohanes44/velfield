@@ -231,8 +231,6 @@ img.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover}
 .pri:hover,.ccard:hover,.post:hover{border-color:rgba(10,10,10,.35)}
 @media (prefers-reduced-motion:no-preference){
     @keyframes flow{to{stroke-dashoffset:-340}}
-  .rv{opacity:0;transform:translateY(14px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
-  .rv.in{opacity:1;transform:none}
 }
 .sig a{margin-top:6px;font-weight:600;color:var(--text);text-decoration:none;border-bottom:1px solid var(--text);align-self:flex-start;font-size:15px}
 .phero{position:relative;overflow:hidden}
@@ -241,3 +239,14 @@ img.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover}
 .ctaband p a{color:#fff;text-decoration:underline;text-underline-offset:3px}
 .chip{background:rgba(20,20,20,.94)}
 .chip.lit{background:rgba(38,38,38,.97)}
+/* scroll choreography (each element animates once, like an "animate on scroll" site) */
+body{overflow-x:clip}
+@media (prefers-reduced-motion:no-preference){
+  html.js [data-a]{opacity:0;transition:opacity var(--ad,.8s) ease var(--dl,0s),transform var(--ad,.8s) ease var(--dl,0s),clip-path var(--ad,.8s) ease var(--dl,0s)}
+  html.js [data-a=fade-right]{transform:translateX(-36px)}
+  html.js [data-a=fade-left]{transform:translateX(36px)}
+  html.js [data-a=fade-up]{transform:translateY(26px)}
+  html.js [data-a=fade-down]{transform:translateY(-22px)}
+  html.js [data-a=clip-down]{opacity:1;clip-path:inset(0 0 100% 0)}
+  html.js [data-a].on{opacity:1;transform:none;clip-path:inset(0 0 0 0)}
+}
