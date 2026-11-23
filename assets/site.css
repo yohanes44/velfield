@@ -218,8 +218,6 @@ img.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover}
 /* ---- light life ---- */
 .hero{position:relative;overflow:hidden}
 .hero .wrap{position:relative;z-index:1}
-.field{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
-.field path{fill:none;stroke:rgba(255,255,255,.14);stroke-width:1.2;stroke-dasharray:4 12}
 .chip{position:relative;transition:background .5s,border-color .5s}
 .chip.c1{border-left:1px solid rgba(255,255,255,.14)}
 .chip::before{content:"";position:absolute;left:-1px;top:10px;bottom:10px;width:2px;border-radius:2px;background:#fff;opacity:0;transition:opacity .5s}
@@ -232,9 +230,14 @@ img.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover}
 .pri,.ccard,.post,.prod{transition:border-color .25s,transform .25s}
 .pri:hover,.ccard:hover,.post:hover{border-color:rgba(10,10,10,.35)}
 @media (prefers-reduced-motion:no-preference){
-  .field path{animation:flow var(--t,30s) linear infinite;animation-delay:var(--d,0s)}
-  @keyframes flow{to{stroke-dashoffset:-340}}
+    @keyframes flow{to{stroke-dashoffset:-340}}
   .rv{opacity:0;transform:translateY(14px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
   .rv.in{opacity:1;transform:none}
 }
 .sig a{margin-top:6px;font-weight:600;color:var(--text);text-decoration:none;border-bottom:1px solid var(--text);align-self:flex-start;font-size:15px}
+.phero{position:relative;overflow:hidden}
+.phero .wrap{position:relative;z-index:1}
+.flowfield{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block}
+.ctaband p a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.chip{background:rgba(20,20,20,.94)}
+.chip.lit{background:rgba(38,38,38,.97)}
