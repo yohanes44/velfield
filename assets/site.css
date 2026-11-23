@@ -203,18 +203,18 @@ h1,h2,h3{font-family:var(--display);text-wrap:balance}
 @media (max-width:460px){.steps{grid-template-columns:1fr}}
 .ctaband + .foot{border-top:1px solid rgba(255,255,255,.12)}
 /* founder split (photo left, text right) */
-.split{display:grid;grid-template-columns:.85fr 1fr;gap:72px;align-items:center}
+.split{display:grid;grid-template-columns:300px 1fr;gap:56px;align-items:center;max-width:900px;margin-inline:auto}
 .photo{margin:0;border-radius:18px;overflow:hidden;aspect-ratio:1/1;background:#fff;max-width:100%;box-shadow:0 24px 50px -30px rgba(0,0,0,.35)}
 .photo img{width:100%;height:100%;object-fit:cover;display:block}
 .kicker{font:700 13px var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.splitcopy h2{font:800 clamp(30px,4vw,44px)/1.08 var(--display);letter-spacing:-.025em;margin:12px 0 18px}
+.splitcopy h2{font:800 clamp(26px,3vw,34px)/1.1 var(--display);letter-spacing:-.025em;margin:12px 0 18px}
 .splitcopy p{margin:0 0 14px;color:var(--muted);max-width:50ch}
 .sig{display:flex;flex-direction:column;margin:22px 0 22px!important;color:var(--text)!important}
 .sig span{color:var(--muted);font-size:15px}
 .textlink{font-weight:700;text-decoration:none;border-bottom:2px solid var(--text)}
 img.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover}
 .tint .svc{border-color:rgba(10,10,10,.14)}
-@media (max-width:760px){.split{grid-template-columns:1fr;gap:32px}.photo{max-width:420px}}
+@media (max-width:760px){.split{grid-template-columns:1fr;gap:28px}.photo{max-width:220px}}
 /* ---- light life ---- */
 .hero{position:relative;overflow:hidden}
 .hero .wrap{position:relative;z-index:1}
