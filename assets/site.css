@@ -237,3 +237,4 @@ img.avatar{width:72px;height:72px;border-radius:12px;object-fit:cover}
   .rv{opacity:0;transform:translateY(14px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
   .rv.in{opacity:1;transform:none}
 }
+.sig a{margin-top:6px;font-weight:600;color:var(--text);text-decoration:none;border-bottom:1px solid var(--text);align-self:flex-start;font-size:15px}
