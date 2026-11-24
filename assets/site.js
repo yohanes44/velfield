@@ -24,16 +24,20 @@
     setTimeout(() => (b.textContent = 'Copy'), 1800);
   }));
 
-  // scroll choreography: reveal each [data-a] element once when it reaches the screen
+  // scroll choreography: reveal each [data-a] element once when it reaches the screen.
+  // Uses the element's box position (not IntersectionObserver): a clip-path of inset(0 0 100% 0)
+  // makes an element count as invisible to IntersectionObserver, so it would never be revealed.
   document.documentElement.classList.add('ready');
-  const els = [...document.querySelectorAll('[data-a]')];
-  const show = el => el.classList.add('on');
-  if (reduce || !('IntersectionObserver' in window)) els.forEach(show);
-  else {
-    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { show(e.target); io.unobserve(e.target); } }),
-      { rootMargin: '0px 0px -60px 0px', threshold: .08 });
-    els.forEach(el => io.observe(el));
-  }
+  let pending = [...document.querySelectorAll('[data-a]')];
+  const reveal = () => {
+    const limit = innerHeight - 40;
+    pending = pending.filter(el => { if (reduce || el.getBoundingClientRect().top < limit) { el.classList.add('on'); return false; } return true; });
+    if (!pending.length) { removeEventListener('scroll', onRevealScroll); removeEventListener('resize', onRevealScroll); }
+  };
+  let ticking = false;
+  const onRevealScroll = () => { if (!ticking) { ticking = true; requestAnimationFrame(() => { ticking = false; reveal(); }); } };
+  addEventListener('scroll', onRevealScroll, { passive: true }); addEventListener('resize', onRevealScroll);
+  reveal();
   if (reduce) return;
 
   // capability tiles on the home page take turns lighting up
